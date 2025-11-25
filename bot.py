@@ -15,9 +15,9 @@ BOT_TOKEN = os.environ.get('BOT_TOKEN', '8545370113:AAHlWoU2P1bON1qUNEUuNX1nY0Df
 REMINDER_TIME = "09:00"
 
 # GitHub configuration - UPDATE THESE!
-GITHUB_USERNAME = "nastyalingvo2080-rgb"  # Your GitHub username
-GITHUB_REPO = "Tatiana-Practice-Bot"           # Your repository name
-GITHUB_BRANCH = "main"                    # Usually "main" or "master"
+GITHUB_USERNAME = "nastyalingvo2080-rgb"
+GITHUB_REPO = "Tatiana-Practice-Bot"
+GITHUB_BRANCH = "main"
 
 # Directory structure
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -40,7 +40,7 @@ def health():
 
 def get_today_date_string():
     """Get today's date in the format used for filenames (e.g., 'November 24')"""
-    return datetime.now().strftime("%B %d").replace(" 0", " ")  # Remove leading zero from day
+    return datetime.now().strftime("%B %d").replace(" 0", " ")
 
 def load_sentences_from_github(filename):
     """Load sentences from a GitHub file"""
@@ -52,7 +52,6 @@ def load_sentences_from_github(filename):
         response = requests.get(url, timeout=10)
         response.raise_for_status()
         
-        # Split by lines and filter out empty lines
         sentences = [line.strip() for line in response.text.split('\n') if line.strip()]
         print(f"✅ Loaded {len(sentences)} sentences from {filename}")
         return sentences
@@ -64,14 +63,12 @@ def load_translation_pairs_from_github():
     """Load translation pairs from GitHub files"""
     date_str = get_today_date_string()
     
-    # File naming: "November 24 English.txt" and "November 24 Russian.txt"
     english_filename = f"{date_str} English.txt"
     russian_filename = f"{date_str} Russian.txt"
     
     english_sentences = load_sentences_from_github(english_filename)
     russian_sentences = load_sentences_from_github(russian_filename)
     
-    # Pair them up
     pairs = []
     for i in range(min(len(english_sentences), len(russian_sentences))):
         pairs.append({
@@ -85,16 +82,13 @@ def load_content():
     """Load today's content from GitHub"""
     date_str = get_today_date_string()
     
-    # For listening: use the English sentences
     listening_filename = f"{date_str} English.txt"
     listening_sentences = load_sentences_from_github(listening_filename)
     
-    # For translation: pair English and Russian sentences
     translation_sentences = load_translation_pairs_from_github()
     
     return listening_sentences, translation_sentences
 
-# Load initial content
 LISTENING_SENTENCES, TRANSLATION_SENTENCES = load_content()
 
 def reload_daily_content():
@@ -168,7 +162,6 @@ def start_practice(message):
     user_id = message.from_user.id
     reset_user_state(user_id)
     
-    # Check if content is available
     if not LISTENING_SENTENCES or not TRANSLATION_SENTENCES:
         bot.send_message(message.chat.id,
                         "⚠️ No content available for today.\n\n"
@@ -327,7 +320,6 @@ def finish_practice(chat_id, user_id):
 def send_daily_reminder():
     """Send daily reminder to all users who have started the bot"""
     print(f"[{datetime.now()}] Sending daily reminders...")
-    # Reload content at reminder time
     reload_daily_content()
     
     for user_id in list(user_states.keys()):
@@ -345,10 +337,7 @@ def send_daily_reminder():
 
 def schedule_checker():
     """Run scheduled tasks"""
-    # Daily reminder at specified time
     schedule.every().day.at(REMINDER_TIME).do(send_daily_reminder)
-    
-    # Reload content at midnight
     schedule.every().day.at("00:01").do(reload_daily_content)
     
     while True:
@@ -363,16 +352,12 @@ if __name__ == '__main__':
     print(f"🔔 Daily reminders set for {REMINDER_TIME}")
     print("Press Ctrl+C to stop\n")
     
-    # Start scheduler in background
     scheduler_thread = threading.Thread(target=schedule_checker, daemon=True)
     scheduler_thread.start()
     
-    # Start bot polling in background
     bot_thread = threading.Thread(target=bot.infinity_polling, daemon=True)
     bot_thread.start()
     
-    # Start Flask app (this will bind to port for Render.com)
     port = int(os.environ.get('PORT', 10000))
     print(f"🌐 Starting web server on port {port}...")
     app.run(host='0.0.0.0', port=port)
-```
