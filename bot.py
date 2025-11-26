@@ -11,7 +11,11 @@ import requests
 from flask import Flask
 
 # ===== CONFIGURATION =====
-BOT_TOKEN = os.environ.get('BOT_TOKEN', '8545370113:AAHlWoU2P1bON1qUNEUuNX1nY0Dfv2BmqZQ')
+BOT_TOKEN = os.environ.get('BOT_TOKEN')
+if not BOT_TOKEN:
+    print("ERROR: BOT_TOKEN environment variable not set!")
+    exit(1)
+
 REMINDER_TIME = "09:00"
 
 # GitHub configuration
@@ -355,13 +359,35 @@ def schedule_checker():
         schedule.run_pending()
         time.sleep(60)
 
+def run_bot():
+    """Run the bot with error recovery"""
+    while True:
+        try:
+            print("🤖 Starting bot polling...")
+            bot.infinity_polling(timeout=60, long_polling_timeout=60)
+        except Exception as e:
+            print(f"❌ Bot error: {e}")
+            print("⏳ Restarting bot in 5 seconds...")
+            time.sleep(5)
+
 if __name__ == '__main__':
     print("🤖 Tatiana's English Practice Bot is starting...")
     print(f"📅 Today's date format: {get_today_date_string()}")
     print(f"📚 Loaded {len(LISTENING_SENTENCES)} listening sentences")
     print(f"🌍 Loaded {len(TRANSLATION_SENTENCES)} translation sentences")
     print(f"🔔 Daily reminders set for {REMINDER_TIME}")
-    print("Press Ctrl+C to stop\n")
     
+    # Start scheduler thread
     scheduler_thread = threading.Thread(target=schedule_checker, daemon=True)
     scheduler_thread.start()
+    print("⏰ Scheduler started")
+    
+    # Start bot thread with error recovery
+    bot_thread = threading.Thread(target=run_bot, daemon=True)
+    bot_thread.start()
+    print("🤖 Bot thread started")
+    
+    # Start Flask web server (this keeps the app running)
+    port = int(os.environ.get('PORT', 10000))
+    print(f"🌐 Starting web server on port {port}...")
+    app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
